@@ -1,17 +1,7 @@
-#
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
-
 library(shiny)
 
 # Define UI for application
 ui <- fluidPage(
-
     # Application title
     titlePanel("CSV Data Analysis"),
 
@@ -48,9 +38,7 @@ ui <- fluidPage(
             radioButtons("disp", "Display",
                          choices = c(Head = "head",
                                      All = "all"),
-                         selected = "head"),
-            # Download button
-            downloadButton("downloadData", "Download CSV")
+                         selected = "head")
         ),
 
         # Show outputs
@@ -76,7 +64,7 @@ server <- function(input, output) {
         return(df)
     })
     
-    # Observe button click to model data
+    # Model the data when button is clicked
     modelData <- eventReactive(input$modelBtn, {
         req(dataInput())
         df <- dataInput()
@@ -89,23 +77,32 @@ server <- function(input, output) {
         return(NULL)
     })
     
+    # Render scatter plot
     output$scatterPlot <- renderPlot({
         req(dataInput())
         df <- dataInput()
-        plot(df[[1]], df[[2]], xlab = names(df)[1], ylab = names(df)[2], 
-             main = "Scatter Plot of Data", col = 'blue', pch = 19)
+        plot(df[[1]], df[[2]], 
+             xlab = names(df)[1], 
+             ylab = names(df)[2], 
+             main = "Scatter Plot of Data", 
+             col = 'blue', pch = 19)
     })
 
+    # Render linear model plot
     output$lmPlot <- renderPlot({
         lm_model <- modelData()
         req(lm_model)
         df <- dataInput()
         
-        plot(df[[1]], df[[2]], xlab = names(df)[1], ylab = names(df)[2], 
-             main = "Linear Model Overlay", col = 'blue', pch = 19)
+        plot(df[[1]], df[[2]], 
+             xlab = names(df)[1], 
+             ylab = names(df)[2], 
+             main = "Linear Model Overlay", 
+             col = 'blue', pch = 19)
         abline(lm_model, col = 'red', lwd = 2)
     })
 
+    # Output model summary: slope, intercept, and correlation coefficient
     output$modelSummary <- renderPrint({
         lm_model <- modelData()
         req(lm_model)
@@ -119,24 +116,15 @@ server <- function(input, output) {
         cat("R-squared:", r_squared, "\n")
     })
 
+    # Display the contents of the uploaded data
     output$contents <- renderTable({
         if(input$disp == "head") {
             return(head(dataInput()))
-        }
-        else {
+        } else {
             return(dataInput())
         }
     })
-    
-    output$downloadData <- downloadHandler(
-        filename = function() {
-            "regrex1.csv"
-        },
-        content = function(file) {
-            write.csv(dataInput(), file, row.names = FALSE)
-        }
-    )
 }
 
 # Run the application 
-shinyApp(ui = ui, server = server)
+shinyApp(ui = ui, server = server
