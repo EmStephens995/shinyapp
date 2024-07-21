@@ -30,8 +30,6 @@ ui <- fluidPage(
                                      "Double Quote" = '"',
                                      "Single Quote" = "'"),
                          selected = '"'),
-            # Button to model the data
-            actionButton("modelBtn", "Model Data"),
             # Horizontal line
             tags$hr(),
             # Input: Select number of rows to display
@@ -43,10 +41,12 @@ ui <- fluidPage(
 
         # Show outputs
         mainPanel(
-           plotOutput("scatterPlot"),
-           plotOutput("lmPlot"),
-           verbatimTextOutput("modelSummary"),
-           tableOutput("contents")
+            plotOutput("scatterPlot"),
+            plotOutput("lmPlot"),
+            verbatimTextOutput("modelSummary"),
+            tableOutput("contents"),
+            # Place the model button at the bottom
+            actionButton("modelBtn", "Model Data")
         )
     )
 )
