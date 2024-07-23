@@ -1,58 +1,77 @@
+#
+# This is a Shiny web application. You can run the application by clicking
+# the 'Run App' button above.
+#
+# Find out more about building applications with Shiny here:
+#
+#    http://shiny.rstudio.com/
+#
+
 library(shiny)
 
-# Define UI for application
+# Define UI for application that draws a histogram
 ui <- fluidPage(
-    # Application title
-    titlePanel("CSV Data Analysis"),
 
-    # Sidebar with a file input and options
+    # Application title
+    titlePanel("BSGP 2024 LM Dashboard"),
+
+    # Sidebar with a slider input for number of bins 
     sidebarLayout(
         sidebarPanel(
-            # Input: Select a file
+
+            
+            # Input: Select a file ----
             fileInput("file1", "Choose CSV File",
                       multiple = FALSE,
                       accept = c("text/csv",
                                  "text/comma-separated-values,text/plain",
                                  ".csv")),
-            # Horizontal line
+            
+            # Horizontal line ----
             tags$hr(),
-            # Checkbox if file has header
+            
+            # Input: Checkbox if file has header ----
             checkboxInput("header", "Header", TRUE),
-            # Input: Select separator
+            
+            # Input: Select separator ----
             radioButtons("sep", "Separator",
                          choices = c(Comma = ",",
                                      Semicolon = ";",
                                      Tab = "\t"),
                          selected = ","),
-            # Input: Select quotes
+            
+            # Input: Select quotes ----
             radioButtons("quote", "Quote",
                          choices = c(None = "",
                                      "Double Quote" = '"',
                                      "Single Quote" = "'"),
                          selected = '"'),
-            # Horizontal line
+            
+            # Horizontal line ----
             tags$hr(),
-            # Input: Select number of rows to display
+            
+            # Input: Select number of rows to display ----
             radioButtons("disp", "Display",
                          choices = c(Head = "head",
                                      All = "all"),
-                         selected = "head")
+                         selected = "head"),
+            tags$hr(),
+            actionButton("go", "Plot Linear Model")
         ),
 
-        # Show outputs
+        # Show a plot of the generated distribution
         mainPanel(
-            plotOutput("scatterPlot"),
-            plotOutput("lmPlot"),
-            verbatimTextOutput("modelSummary"),
-            tableOutput("contents"),
-            # Place the model button at the bottom
-            actionButton("modelBtn", "Model Data")
+           plotOutput("originalPlot"),
+           plotOutput("lmPlot"),
+           tableOutput("contents")
         )
     )
 )
 
-# Define server logic
+# Define server logic required to draw a histogram
 server <- function(input, output) {
+
+    lmdata <- reactiveValues()
     
     dataInput <- reactive({
         req(input$file1)
@@ -63,67 +82,46 @@ server <- function(input, output) {
                        quote = input$quote)
         return(df)
     })
-    
-    # Model the data when button is clicked
-    modelData <- eventReactive(input$modelBtn, {
-        req(dataInput())
-        df <- dataInput()
-        
-        # Check if the data has at least two columns
-        if (ncol(df) >= 2) {
-            lm_model <- lm(df[[2]] ~ df[[1]], data = df)
-            return(lm_model)
-        }
-        return(NULL)
-    })
-    
-    # Render scatter plot
-    output$scatterPlot <- renderPlot({
-        req(dataInput())
-        df <- dataInput()
-        plot(df[[1]], df[[2]], 
-             xlab = names(df)[1], 
-             ylab = names(df)[2], 
-             main = "Scatter Plot of Data", 
-             col = 'blue', pch = 19)
-    })
 
-    # Render linear model plot
+    observeEvent(input$go,{
+        update_lm()
+    })
+    
+   update_lm <- function(){
+       lmdata$model <- lm(y ~ x, data = dataInput())
+    }
+    
+    output$originalPlot <- renderPlot({
+        plot(dataInput()$x,dataInput()$y,
+            xlab = "X Axis",
+            ylab = "Y Axis",
+            main = "Original Plot")
+    })
+    
     output$lmPlot <- renderPlot({
-        lm_model <- modelData()
-        req(lm_model)
-        df <- dataInput()
-        
-        plot(df[[1]], df[[2]], 
-             xlab = names(df)[1], 
-             ylab = names(df)[2], 
-             main = "Linear Model Overlay", 
-             col = 'blue', pch = 19)
-        abline(lm_model, col = 'red', lwd = 2)
-    })
-
-    # Output model summary: slope, intercept, and correlation coefficient
-    output$modelSummary <- renderPrint({
-        lm_model <- modelData()
-        req(lm_model)
-        
-        slope <- coef(lm_model)[2]
-        intercept <- coef(lm_model)[1]
-        r_squared <- summary(lm_model)$r.squared
-        
-        cat("Slope:", slope, "\n")
-        cat("Intercept:", intercept, "\n")
-        cat("R-squared:", r_squared, "\n")
-    })
-
-    # Display the contents of the uploaded data
+        plot(dataInput()$x,dataInput()$y,
+            xlab = "X Axis",
+            ylab = "Y Axis",
+            main = "Linear Model Plot")
+        abline(lmdata$model) })
+    
+    
     output$contents <- renderTable({
+        
+        # input$file1 will be NULL initially. After the user selects
+        # and uploads a file, head of that data file by default,
+        # or all rows if selected, will be shown.
+        
+        
         if(input$disp == "head") {
             return(head(dataInput()))
-        } else {
+        }
+        else {
             return(dataInput())
         }
+        
     })
+        
 }
 
 # Run the application 
